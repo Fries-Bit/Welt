@@ -1,9 +1,0 @@
-git add .
-
-git commit -m "Replace remote with local files"
-
-git remote add origin https://github.com/Fries-Bit/Welt.git
-
-git branch -M main
-
-git push -u origin main --force
