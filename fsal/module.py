@@ -1,4 +1,3 @@
-# aat.py
 import struct
 import io
 import types

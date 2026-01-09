@@ -1,4 +1,3 @@
-# atff.py
 import struct
 import argparse
 import os
