@@ -4,7 +4,7 @@
     <source media="(prefers-color-scheme: light)" srcset="https://github.com/Fries-Bit/Welt/blob/main/ico/banner.png">
     <img alt="Bannr for Welt README.md"
          src="https://github.com/Fries-Bit/Welt/blob/main/ico/banner.png"
-         width="110%">
+         width="155%">
   </picture>
 
 [Website][site] | [gt] | [learn] | [doc] | [contru]
