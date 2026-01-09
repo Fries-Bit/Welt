@@ -1,2 +1,5 @@
+# Ignore a specific file
 Commit-Changes.md
+
+# Ignore the backup folder
 backup/
