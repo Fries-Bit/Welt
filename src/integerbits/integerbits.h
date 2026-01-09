@@ -21,20 +21,27 @@ typedef struct {
 // Determine architecture dependent bit width
 #define ARCH_BIT (sizeof(void*) * 8)
 
-// Helper to mask values to specific bit sizes
 unsigned long long mask_bits(unsigned long long val, int bits) {
-    if (bits >= 64 || bits <= 0) return val;
+    if (bits <= 0) return 0;
+    if (bits >= 64) return val;
     return val & ((1ULL << bits) - 1);
 }
 
-// Parse <hex>1234
 long long parse_hex_literal(const char* token) {
-    // Expected format: <hex>123...
-    if (strstr(token, "<hex>") == token) {
-        char *ptr;
-        return strtoll(token + 5, &ptr, 16);
+    if (!token || strstr(token, "<hex>") != token) {
+        return 0;
     }
-    return 0;
+    
+    const char* hex_start = token + 5;
+    char *endptr;
+    long long result = strtoll(hex_start, &endptr, 16);
+    
+    if (endptr == hex_start) {
+        printf("Warning: Invalid hex literal '%s'\n", token);
+        return 0;
+    }
+    
+    return result;
 }
 
 // Logic for declaring: vartype varname<i(bitsize)>

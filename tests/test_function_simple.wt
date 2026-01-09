@@ -1,0 +1,9 @@
+// Test: Simple function
+
+fn sayHello() {
+    print("Hello, World!");
+}
+
+fn main() {
+    sayHello();
+}

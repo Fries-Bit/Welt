@@ -1,0 +1,7 @@
+// Test: Method calls
+
+fn main() {
+    string message = "Hello World";
+    print("Message: {}@", message);
+    message.length_of_variable();
+}

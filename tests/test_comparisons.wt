@@ -1,0 +1,25 @@
+// Test: Comparison operators
+
+fn main() {
+    integer x = 5;
+    integer y = 10;
+    
+    if [x < y] {
+        print("5 < 10: true");
+    }
+    
+    if [y > x] {
+        print("10 > 5: true");
+    }
+    
+    integer a = 5;
+    integer b = 5;
+    
+    if [a == b] {
+        print("5 == 5: true");
+    }
+    
+    if [a === b] {
+        print("5 === 5: true");
+    }
+}

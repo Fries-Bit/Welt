@@ -1,0 +1,12 @@
+// Test: Hex Literals and Integer Operations
+
+fn main() {
+    integer hexval = <hex>FF;
+    print("Hex FF = {}@", hexval);
+    
+    integer bigHex = <hex>DEADBEEF;
+    print("Hex DEADBEEF = {}@", bigHex);
+    
+    integer regular = 1000;
+    print("Regular 1000 = {}@", regular);
+}

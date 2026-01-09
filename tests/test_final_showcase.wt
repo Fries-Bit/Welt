@@ -1,0 +1,37 @@
+// Test: Final showcase of all bug fixes
+
+fn greet(name: string, age: integer) {
+    print("Hello {}@! You are {}@ years old.", name, age);
+}
+
+fn calculate(x: integer, y: integer) {
+    integer sum = x;
+    print("Calculating with {}@ and {}@", x, y);
+}
+
+fn main() {
+    print("=== Function Arguments with Literals ===");
+    greet("Alice", 25);
+    greet("Bob", 30);
+    
+    print("");
+    print("=== Function Arguments with Variables ===");
+    string myName = "Charlie";
+    integer myAge = 35;
+    greet(myName, myAge);
+    
+    print("");
+    print("=== Multiple Function Calls ===");
+    calculate(10, 20);
+    calculate(100, 200);
+    calculate(5, 15);
+    
+    print("");
+    print("=== Mixed Literals and Variables ===");
+    integer val = 42;
+    calculate(val, 100);
+    calculate(50, val);
+    
+    print("");
+    print("=== All tests passed! ===");
+}

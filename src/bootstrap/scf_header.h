@@ -9,11 +9,12 @@
 
 typedef struct {
     char name[64];
-    // In a real interpreter, this would store AST nodes for the function body
-    long file_offset; 
     int arg_count;
-    char args[10][64]; // Up to 10 args for demo
-    char arg_types[10][64]; // Types: string, integer<u8bit>, etc
+    char args[10][64];
+    char arg_types[10][64];
+    char** body_lines;
+    int body_line_count;
+    int body_capacity;
 } WeltFunction;
 
 typedef struct {
@@ -37,9 +38,44 @@ typedef struct {
 WeltGlobalExt global_extensions[50];
 int g_ext_count = 0;
 
+WeltFunction function_table[100];
+int function_count = 0;
+
 void register_global_extension(const char* name) {
     strcpy(global_extensions[g_ext_count].ext_name, name);
     g_ext_count++;
+}
+
+WeltFunction* create_function(const char* name) {
+    if (function_count >= 100) return NULL;
+    
+    WeltFunction* f = &function_table[function_count];
+    strcpy(f->name, name);
+    f->arg_count = 0;
+    f->body_lines = NULL;
+    f->body_line_count = 0;
+    f->body_capacity = 0;
+    
+    function_count++;
+    return f;
+}
+
+WeltFunction* get_function(const char* name) {
+    for (int i = 0; i < function_count; i++) {
+        if (strcmp(function_table[i].name, name) == 0) {
+            return &function_table[i];
+        }
+    }
+    return NULL;
+}
+
+void add_function_body_line(WeltFunction* f, const char* line) {
+    if (f->body_line_count >= f->body_capacity) {
+        f->body_capacity = f->body_capacity == 0 ? 10 : f->body_capacity * 2;
+        f->body_lines = realloc(f->body_lines, f->body_capacity * sizeof(char*));
+    }
+    f->body_lines[f->body_line_count] = strdup(line);
+    f->body_line_count++;
 }
 
 // Logic to dispatch: varname.gname()

@@ -14,11 +14,19 @@ def _read_exact(f, n, ctx=""):
 # ---------------- DEPENDENCY EXECUTION ----------------
 
 def _run_link(link):
-    """Execute a @link immediately."""
+    """Execute a @link immediately.
+    
+    WARNING: This executes arbitrary code from remote URLs without validation.
+    This is a significant security risk and should only be used with trusted sources.
+    Consider implementing:
+    - URL whitelist validation
+    - Code sandboxing (e.g., RestrictedPython)
+    - Digital signature verification
+    - User confirmation prompts
+    """
     original_link = link
     link = link.strip()
 
-    # Accept both "@url" and plain "url" for convenience (but @ is preferred)
     if link.startswith("@"):
         url = link[1:].strip()
     elif link.startswith("http://") or link.startswith("https://"):
@@ -27,12 +35,15 @@ def _run_link(link):
         print(f"[ATFF] Skipping invalid link (must be @url or http(s)://): {original_link}")
         return
 
+    print(f"[ATFF] WARNING: Executing remote code from {url}")
+    print(f"[ATFF] This is a security risk. Only use trusted sources.")
+    
     try:
         code = urllib.request.urlopen(url).read().decode('utf-8')
-        exec(code, {"__name__": f"__atff_dep_{url.split('/')[-1]}"})
+        exec(code, {"__name__": f"__atff_dep_{url.split('/')[-1]}", "__builtins__": __builtins__})
     except Exception as e:
         print(f"[ATFF] FAILED to execute {url}: {e}")
-        raise  # Optionally re-raise or just warn
+        raise
 
 # ---------------- TABLE READER ----------------
 

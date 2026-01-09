@@ -1,0 +1,12 @@
+// Test: String Operations
+
+fn main() {
+    string greeting = "Hello, World!";
+    print("Greeting: {}@", greeting);
+    
+    string empty = "";
+    print("Empty string: {}@", empty);
+    
+    string special = "Test with spaces and symbols!@#";
+    print("Special: {}@", special);
+}

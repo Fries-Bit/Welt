@@ -24,25 +24,41 @@ void strip_commas(char* dest, const char* src) {
 }
 
 // The Print Function: print("Hello {}@", var);
-void welt_print(const char* fmt, WeltValue* arg) {
+void welt_print(const char* fmt, WeltValue** args, int arg_count) {
+    if (!fmt) {
+        printf("\n");
+        return;
+    }
+    
     const char* p = fmt;
+    int arg_index = 0;
     while (*p) {
         if (*p == '{' && *(p+1) == '}' && *(p+2) == '@') {
-            // Injection point
-            if (arg) {
-                switch(arg->type) {
-                    case WT_INTEGER: 
-                        if(arg->is_hex_repr) printf("%llX", arg->data.i_val);
-                        else printf("%lld", arg->data.i_val); 
-                        break;
-                    case WT_STRING: printf("%s", arg->data.s_val); break;
-                    case WT_BOOL: printf(arg->data.b_val ? "true" : "false"); break;
-                    case WT_FLOAT: printf("%f", arg->data.f_val); break;
-                    case WT_SYS_IND: printf("<sys_ind:%p>", arg->data.ptr_val); break;
-                    default: printf("nil");
+            if (arg_index < arg_count && args[arg_index]) {
+                WeltValue* arg = args[arg_index];
+                if (arg) {
+                    switch(arg->type) {
+                        case WT_INTEGER: 
+                            if(arg->is_hex_repr) printf("%llX", arg->data.i_val);
+                            else printf("%lld", arg->data.i_val); 
+                            break;
+                        case WT_STRING: 
+                            if(arg->data.s_val) printf("%s", arg->data.s_val);
+                            else printf("(null)");
+                            break;
+                        case WT_BOOL: printf(arg->data.b_val ? "true" : "false"); break;
+                        case WT_FLOAT: printf("%f", arg->data.f_val); break;
+                        case WT_SYS_IND: printf("<sys_ind:%p>", arg->data.ptr_val); break;
+                        default: printf("nil");
+                    }
+                } else {
+                    printf("(null)");
                 }
+            } else {
+                printf("(missing)");
             }
-            p += 3; // skip {}@
+            arg_index++;
+            p += 3;
         } else {
             putchar(*p);
             p++;
@@ -65,34 +81,56 @@ WeltValue* cc_input(const char* prompt) {
     return NULL;
 }
 
-// The == operator (Not case or integer sensitive, ignores commas)
 int loose_equals(WeltValue* a, WeltValue* b) {
-    // Conversion to string for loose comparison
-    // Implementation simplified for prototype
+    if (!a || !b) return 0;
+    
     char bufA[256], bufB[256];
     char cleanA[256], cleanB[256];
     
-    // ... (Populate bufA/B based on type) ...
-    // Assuming integers for the example constraint:
-    if(a->type == WT_INTEGER) sprintf(bufA, "%lld", a->data.i_val);
-    else if(a->type == WT_STRING) strcpy(bufA, a->data.s_val);
+    bufA[0] = '\0';
+    bufB[0] = '\0';
     
-    if(b->type == WT_INTEGER) sprintf(bufB, "%lld", b->data.i_val);
-    else if(b->type == WT_STRING) strcpy(bufB, b->data.s_val);
+    if(a->type == WT_INTEGER) {
+        snprintf(bufA, sizeof(bufA), "%lld", a->data.i_val);
+    } else if(a->type == WT_STRING && a->data.s_val) {
+        snprintf(bufA, sizeof(bufA), "%s", a->data.s_val);
+    } else {
+        strcpy(bufA, "nil");
+    }
+    
+    if(b->type == WT_INTEGER) {
+        snprintf(bufB, sizeof(bufB), "%lld", b->data.i_val);
+    } else if(b->type == WT_STRING && b->data.s_val) {
+        snprintf(bufB, sizeof(bufB), "%s", b->data.s_val);
+    } else {
+        strcpy(bufB, "nil");
+    }
 
     strip_commas(cleanA, bufA);
     strip_commas(cleanB, bufB);
 
-    // Case insensitive compare
     return (strcasecmp(cleanA, cleanB) == 0);
 }
 
-// The === operator (Strict)
 int strict_equals(WeltValue* a, WeltValue* b) {
+    if (!a || !b) return 0;
     if (a->type != b->type) return 0;
-    if (a->type == WT_INTEGER) return a->data.i_val == b->data.i_val;
-    if (a->type == WT_STRING) return strcmp(a->data.s_val, b->data.s_val) == 0;
-    return 0;
+    
+    switch(a->type) {
+        case WT_INTEGER:
+            return a->data.i_val == b->data.i_val;
+        case WT_FLOAT:
+            return a->data.f_val == b->data.f_val;
+        case WT_BOOL:
+            return a->data.b_val == b->data.b_val;
+        case WT_STRING:
+            if (!a->data.s_val || !b->data.s_val) return 0;
+            return strcmp(a->data.s_val, b->data.s_val) == 0;
+        case WT_SYS_IND:
+            return a->data.ptr_val == b->data.ptr_val;
+        default:
+            return 0;
+    }
 }
 
 #endif

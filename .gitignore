@@ -3,3 +3,6 @@ Commit-Changes.md
 
 # Ignore the backup folder
 backup/
+
+# Ignore build
+build.bat

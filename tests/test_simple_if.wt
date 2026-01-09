@@ -1,0 +1,11 @@
+// Test: Simple if
+
+fn main() {
+    bool flag = true;
+    
+    if [flag] {
+        print("Flag is true");
+    }
+    
+    print("Done");
+}

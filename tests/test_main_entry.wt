@@ -1,0 +1,11 @@
+// Test: Main function as entry point
+
+integer globalVar = 100;
+
+fn main() {
+    print("Main function called!");
+    print("Global var: {}@", globalVar);
+    
+    integer x = 42;
+    print("Local var in main: {}@", x);
+}

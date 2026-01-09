@@ -1,0 +1,18 @@
+// Test: Print Function
+
+fn main() {
+    print("Simple message");
+    
+    integer num = 123;
+    print("Number is {}@", num);
+    
+    string text = "testing";
+    print("Text is {}@", text);
+    
+    integer a = 1;
+    integer b = 2;
+    integer c = 3;
+    print("a = {}@", a);
+    print("b = {}@", b);
+    print("c = {}@", c);
+}

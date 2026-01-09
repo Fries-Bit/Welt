@@ -1,0 +1,39 @@
+// Test: FSAL integration with Welt
+
+fn main() {
+    print("=== FSAL Test in Welt ===");
+    print("");
+    
+    // Load FSAL file
+    sys_ind config_file = fsal_load("tests\\example.atff");
+    
+    // Read app section
+    print("[app]");
+    string app_name = fsal_get_string(config_file, "app", "name");
+    print("  name: {}@", app_name);
+    
+    integer app_version = fsal_get_int(config_file, "app", "version");
+    print("  version: {}@", app_version);
+    
+    bool app_enabled = fsal_get_bool(config_file, "app", "enabled");
+    print("  enabled: {}@", app_enabled);
+    
+    float pi_value = fsal_get_float(config_file, "app", "pi_value");
+    print("  pi_value: {}@", pi_value);
+    
+    print("");
+    
+    // Read database section
+    print("[database]");
+    string db_host = fsal_get_string(config_file, "database", "host");
+    print("  host: {}@", db_host);
+    
+    integer db_port = fsal_get_int(config_file, "database", "port");
+    print("  port: {}@", db_port);
+    
+    bool use_ssl = fsal_get_bool(config_file, "database", "use_ssl");
+    print("  use_ssl: {}@", use_ssl);
+    
+    print("");
+    print("=== FSAL test completed ===");
+}

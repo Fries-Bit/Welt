@@ -1,0 +1,16 @@
+// Test: Functions
+
+fn greet() {
+    print("Hello from greet function!");
+}
+
+fn add(a: integer, b: integer) {
+    integer sum = a;
+    print("Sum would be a + b (not implemented yet)");
+}
+
+fn main() {
+    print("Starting program...");
+    greet();
+    print("Program finished!");
+}

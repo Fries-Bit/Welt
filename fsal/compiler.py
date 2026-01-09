@@ -3,6 +3,7 @@ import argparse
 import os
 import urllib.request
 from io import BytesIO
+from errors import error_invalid_syntax, error_type_mismatch, error_missing_section, FSALUnknownKeyError
 
 TYPE_IDS = {
     "int": 1,
@@ -11,6 +12,8 @@ TYPE_IDS = {
     "str": 4,
     "table": 5,
 }
+
+VALID_TYPES = list(TYPE_IDS.keys())
 
 # ---------------- PARSER ----------------
 
@@ -63,14 +66,24 @@ def parse_aap(path):
             continue
 
         if "=" not in line or ":" not in line:
+            error_invalid_syntax(f"Invalid line format (expected 'key = value : type')", i, line)
             raise ValueError(f"Invalid line: {line}")
 
         if section is None:
+            error_missing_section(f"Key/value outside section at line {i}")
             raise ValueError(f"Key/value outside section: {line}")
 
         k, rest = line.split("=", 1)
         v, t = rest.rsplit(":", 1)
-        data[section][k.strip()] = (v.strip(), t.strip())
+        
+        t_stripped = t.strip()
+        if t_stripped not in VALID_TYPES:
+            err = FSALUnknownKeyError(t_stripped, VALID_TYPES, i)
+            print(err.format_error())
+            print()
+            raise ValueError(f"Unknown type: {t_stripped}")
+        
+        data[section][k.strip()] = (v.strip(), t_stripped)
 
     return data, links
 
@@ -78,25 +91,48 @@ def parse_aap(path):
 
 def encode_value(val, typ):
     if typ == "int":
-        return struct.pack(">i", int(val))
+        try:
+            return struct.pack(">i", int(val))
+        except ValueError:
+            error_type_mismatch("int", val, 0)
+            raise
     if typ == "float":
-        return struct.pack(">f", float(val))
+        try:
+            return struct.pack(">f", float(val))
+        except ValueError:
+            error_type_mismatch("float", val, 0)
+            raise
     if typ == "bool":
         return b"\x01" if val.lower() == "true" else b"\x00"
     if typ == "str":
         return val.encode()
+    
+    err = FSALUnknownKeyError(typ, VALID_TYPES)
+    print(err.format_error())
+    print()
     raise ValueError(f"Unknown type {typ}")
 
 # ---------------- LINK EXECUTOR ----------------
 
 def execute_link(link):
-    """Execute a @link immediately using exec."""
+    """Execute a @link immediately using exec.
+    
+    WARNING: This executes arbitrary code from remote URLs without validation.
+    This is a significant security risk and should only be used with trusted sources.
+    Consider implementing:
+    - URL whitelist validation
+    - Code sandboxing (e.g., RestrictedPython)
+    - Digital signature verification
+    - User confirmation prompts
+    """
     link = link.strip()
     if link.startswith("@"):
         url = link[1:].strip()
-        print(f"[ATFF] Executing {url}")
+        print(f"[ATFF] WARNING: Executing remote code from {url}")
+        print(f"[ATFF] This is a security risk. Only use trusted sources.")
         try:
-            exec(urllib.request.urlopen(url).read().decode())
+            code = urllib.request.urlopen(url).read().decode()
+            exec(code, {"__name__": "__atff_link__", "__builtins__": __builtins__})
         except Exception as e:
             print(f"[ATFF] Error executing {url}: {e}")
 

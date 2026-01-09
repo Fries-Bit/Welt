@@ -1,0 +1,27 @@
+// Test: Function arguments with types and bit constraints
+
+fn greet(name: string) {
+    print("Hello, {}@", name);
+}
+
+fn addNumbers(a: integer, b: integer) {
+    integer sum = a;
+    print("Adding {}@ + {}@", a, b);
+}
+
+fn withBits(x<u8bit>: integer, y<i16bit>: integer) {
+    print("x = {}@, y = {}@", x, y);
+}
+
+fn main() {
+    string myName = "Welt";
+    greet("Skibidi");
+    
+    integer num1 = 10;
+    integer num2 = 20;
+    addNumbers(num1, num2);
+    
+    integer small<u8bit> = 100;
+    integer medium<i16bit> = 5000;
+    withBits(small, medium);
+}

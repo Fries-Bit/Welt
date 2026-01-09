@@ -1,0 +1,15 @@
+// Test: Bit Constraints
+
+fn main() {
+    integer small<i8bit> = 255;
+    print("8-bit value: {}@", small);
+    
+    integer medium<i16bit> = 65535;
+    print("16-bit value: {}@", medium);
+    
+    integer ubyte<u8bit> = 200;
+    print("Unsigned 8-bit: {}@", ubyte);
+    
+    integer overflow<i8bit> = 500;
+    print("8-bit with overflow (500 masked): {}@", overflow);
+}

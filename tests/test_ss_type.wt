@@ -1,0 +1,12 @@
+// Test: SS (Auto-detect) Type
+
+fn main() {
+    ss myString = "auto-detected string";
+    print("SS String: {}@", myString);
+    
+    ss myInt = 42;
+    print("SS Integer: {}@", myInt);
+    
+    ss largeNum = 999999;
+    print("SS Large: {}@", largeNum);
+}

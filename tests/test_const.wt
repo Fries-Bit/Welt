@@ -1,0 +1,14 @@
+// Test: Const variables
+
+fn main() {
+    const integer MAX = 100;
+    print("MAX: {}@", MAX);
+    
+    const string NAME = "Welt";
+    print("NAME: {}@", NAME);
+    
+    integer x = 10;
+    print("x before: {}@", x);
+    x = 20;
+    print("x after: {}@", x);
+}

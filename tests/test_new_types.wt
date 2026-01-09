@@ -1,0 +1,16 @@
+// Test: Bool and Float types
+
+fn main() {
+    bool isTrue = true;
+    bool isFalse = false;
+    print("Boolean true: {}@", isTrue);
+    print("Boolean false: {}@", isFalse);
+    
+    float pi = 3.14159;
+    float e = 2.71828;
+    print("Pi: {}@", pi);
+    print("E: {}@", e);
+    
+    sys_ind pointer = NULL;
+    print("Pointer: {}@", pointer);
+}

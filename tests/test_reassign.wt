@@ -1,0 +1,20 @@
+// Test: Variable reassignment
+
+fn main() {
+    integer x = 10;
+    print("x = {}@", x);
+    x = 20;
+    print("x = {}@", x);
+    x = 30;
+    print("x = {}@", x);
+    
+    string message = "Hello";
+    print("message = {}@", message);
+    message = "World";
+    print("message = {}@", message);
+    
+    bool flag = true;
+    print("flag = {}@", flag);
+    flag = false;
+    print("flag = {}@", flag);
+}

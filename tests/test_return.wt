@@ -1,0 +1,11 @@
+// Test: Return statement
+
+fn getValue() {
+    return 42;
+}
+
+fn main() {
+    print("Testing return statement");
+    getValue();
+    print("Function called");
+}

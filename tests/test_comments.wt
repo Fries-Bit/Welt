@@ -1,0 +1,19 @@
+// Test: Comments
+
+fn main() {
+    integer x = 10;
+    print("x = {}@", x);
+    
+    /*
+    Block comment test
+    Multiple lines
+    Should be ignored
+    */
+    
+    integer y = 20;
+    print("y = {}@", y);
+    
+    /* Another block comment */
+    integer z = 30;
+    print("z = {}@", z);
+}

@@ -1,0 +1,27 @@
+// Test: If/Else statements
+
+fn main() {
+    bool condition = true;
+    
+    if [condition] {
+        print("Condition is true!");
+    }
+    
+    bool otherCondition = false;
+    
+    if [otherCondition] {
+        print("This should not print");
+    } else {
+        print("Condition is false!");
+    }
+    
+    integer x = 5;
+    
+    if [x == 10] {
+        print("x is 10");
+    } else if [x == 5] {
+        print("x is 5");
+    } else {
+        print("x is neither");
+    }
+}

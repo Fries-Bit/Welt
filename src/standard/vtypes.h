@@ -51,9 +51,14 @@ WeltValue* wv_create() {
     WeltValue* v = (WeltValue*)malloc(sizeof(WeltValue));
     v->type = WT_SS_NULL;
     v->is_const = 0;
+    v->is_hex_repr = 0;
     v->data.i_val = 0;
     v->collection_items = NULL;
     v->collection_size = 0;
+    v->collection_cap = 0;
+    v->bit_info.bits = 32;
+    v->bit_info.is_unsigned = 0;
+    v->bit_info.is_arch_dep = 0;
     return v;
 }
 

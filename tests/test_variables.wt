@@ -1,0 +1,14 @@
+// Test: Variable Declarations
+
+fn main() {
+    integer x = 10;
+    print("Integer x = {}@", x);
+    
+    string name = "Welt";
+    print("String name = {}@", name);
+    
+    integer y = 5;
+    print("Before: y = {}@", y);
+    integer y = 20;
+    print("After: y = {}@", y);
+}

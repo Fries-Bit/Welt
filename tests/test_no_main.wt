@@ -1,0 +1,4 @@
+// Test: Error when no main function exists
+
+integer x = 10;
+print("This code won't execute without main()");

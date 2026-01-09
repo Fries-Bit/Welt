@@ -1,0 +1,28 @@
+// Test: Comprehensive error handling
+
+fn testFunc(x: integer) {
+    print("Value: {}@", x);
+}
+
+fn main() {
+    print("=== Test 1: Undefined variable in print ===");
+    print("Value: {}@", undefinedVar);
+    
+    print("=== Test 2: Reassigning undeclared variable ===");
+    notDeclared = 42;
+    
+    print("=== Test 3: Method call on undefined variable ===");
+    nonExistent.length_of_variable();
+    
+    print("=== Test 4: Function call with undefined variable ===");
+    testFunc(missingVar);
+    
+    print("=== Test 5: Wrong argument count ===");
+    testFunc(1, 2);
+    
+    print("=== Test 6: Unknown method ===");
+    integer validVar = 10;
+    validVar.unknownMethod();
+    
+    print("=== All error tests completed ===");
+}

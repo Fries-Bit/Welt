@@ -1,0 +1,13 @@
+// Test: For loops with i++ and i--
+
+fn main() {
+    print("Counting up:");
+    for [integer i = 0; i < 5; i++] {
+        print("i = {}@", i);
+    }
+    
+    print("Counting down:");
+    for [integer j = 5; j > 0; j--] {
+        print("j = {}@", j);
+    }
+}

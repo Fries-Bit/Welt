@@ -1,0 +1,14 @@
+// Test: Structures and classes
+
+structure Person {
+    string name;
+    integer age;
+}
+
+class Animal {
+    string species;
+}
+
+fn main() {
+    print("Structure and class defined");
+}

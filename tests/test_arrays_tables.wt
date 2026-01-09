@@ -1,0 +1,9 @@
+// Test: Arrays and Tables
+
+fn main() {
+    integer myArray = {};
+    print("Array created");
+    
+    string myTable = [];
+    print("Table created");
+}
