@@ -1,0 +1,23 @@
+fn fibonacci(n: integer) {
+    if (n === 0) {
+        return 0;
+    }
+    if (n === 1) {
+        return 1;
+    }
+    integer a = 0;
+    integer b = 1;
+    for (integer i = 2; i < n; i++) {
+        integer temp = a + b;
+        a = b;
+        b = temp;
+    }
+    return b;
+}
+
+fn main() {
+    print("Fibonacci(10) = {}@", fibonacci(10));
+    print("Fibonacci(5) = {}@", fibonacci(5));
+    print("Fibonacci(0) = {}@", fibonacci(0));
+    print("Fibonacci(1) = {}@", fibonacci(1));
+}

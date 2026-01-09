@@ -1,0 +1,9 @@
+fn add(a: integer, b: integer) {
+    integer sum = a + b;
+    return sum;
+}
+
+fn main() {
+    integer result = add(10, 20);
+    print("result = {}@", result);
+}

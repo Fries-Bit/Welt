@@ -1,0 +1,25 @@
+#import FSAL
+
+fn main() {
+    print("=== FSAL Module Test ===");
+    
+    FSAL.port("tests/example.atff");
+    
+    print("");
+    print("=== Importing whole 'app' section ===");
+    FSAL.importWhole("app");
+    
+    print("");
+    print("Variables imported:");
+    print("name = {}@", name);
+    print("version = {}@", version);
+    print("enabled = {}@", enabled);
+    
+    print("");
+    print("=== Importing specific variable ===");
+    FSAL.importBuilding("host", "database");
+    print("host = {}@", host);
+    
+    print("");
+    print("=== Test completed ===");
+}

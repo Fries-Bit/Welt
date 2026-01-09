@@ -1,0 +1,8 @@
+fn simple_return() {
+    return 99;
+}
+
+fn main() {
+    integer x = simple_return();
+    print("x = {}@", x);
+}

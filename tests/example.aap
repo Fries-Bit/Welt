@@ -1,0 +1,15 @@
+[app]
+name = WeltApp : str
+version = 1 : int
+enabled = true : bool
+pi_value = 3.14159 : float
+
+[database]
+host = localhost : str
+port = 5432 : int
+use_ssl = true : bool
+timeout = 30.5 : float
+
+[settings]
+debug = false : bool
+max_connections = 100 : int

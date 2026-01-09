@@ -1,0 +1,15 @@
+fn test(n: integer) {
+    if (n === 0) {
+        return 100;
+    }
+    if (n === 1) {
+        return 200;
+    }
+    return 300;
+}
+
+fn main() {
+    print("test(0) = {}@", test(0));
+    print("test(1) = {}@", test(1));
+    print("test(2) = {}@", test(2));
+}

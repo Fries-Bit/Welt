@@ -1,0 +1,13 @@
+fn test(n: integer) {
+    print("n = {}@", n);
+    if (n === 0) {
+        print("n is 0, returning 99");
+        return 99;
+    }
+    print("n is not 0, returning 88");
+    return 88;
+}
+
+fn main() {
+    print("Result: {}@", test(0));
+}

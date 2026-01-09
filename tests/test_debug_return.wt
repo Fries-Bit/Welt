@@ -1,0 +1,10 @@
+fn simple_return() {
+    print("Inside simple_return");
+    return 99;
+}
+
+fn main() {
+    print("Calling simple_return");
+    simple_return();
+    print("Done");
+}

@@ -1,0 +1,8 @@
+fn main() {
+    integer a = 10;
+    integer b = 20;
+    integer sum = a + b;
+    print("a = {}@", a);
+    print("b = {}@", b);
+    print("sum = {}@", sum);
+}

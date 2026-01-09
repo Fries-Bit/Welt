@@ -40,6 +40,65 @@ char for_incr[256];
 char* for_body_lines[1000];
 int for_body_count = 0;
 
+int fsal_imported = 0;
+FSALFile* fsal_current_file = NULL;
+
+WeltValue* function_return_value = NULL;
+int function_has_returned = 0;
+
+int split_args_respecting_parens(char* args_str, char* results[], int max_results) {
+    int count = 0;
+    int paren_depth = 0;
+    char* start = args_str;
+    char* p = args_str;
+    
+    while (*p && count < max_results) {
+        if (*p == '(') {
+            paren_depth++;
+        } else if (*p == ')') {
+            paren_depth--;
+        } else if (*p == ',' && paren_depth == 0) {
+            *p = '\0';
+            results[count++] = start;
+            start = p + 1;
+        }
+        p++;
+    }
+    
+    if (start < p && count < max_results) {
+        results[count++] = start;
+    }
+    
+    return count;
+}
+
+void welt_print_value(WeltValue* v) {
+    if(!v) {
+        printf("(null)");
+        return;
+    }
+    switch(v->type) {
+        case WT_INTEGER:
+            printf("%lld", v->data.i_val);
+            break;
+        case WT_STRING:
+            if(v->data.s_val) printf("%s", v->data.s_val);
+            else printf("(null)");
+            break;
+        case WT_BOOL:
+            printf(v->data.b_val ? "true" : "false");
+            break;
+        case WT_FLOAT:
+            printf("%f", v->data.f_val);
+            break;
+        case WT_SYS_IND:
+            printf("<sys_ind:%p>", v->data.ptr_val);
+            break;
+        default:
+            printf("(unknown)");
+    }
+}
+
 WeltValue* get_var(const char* name) {
     for(int i=0; i<symbol_count; i++) {
         if(strcmp(symbol_table[i].name, name) == 0) {
@@ -169,16 +228,24 @@ WeltValue* call_function(const char* name, WeltValue** args, int arg_count) {
     
     int saved_symbol_count = symbol_count;
     
+    function_return_value = NULL;
+    function_has_returned = 0;
+    
     for (int i = 0; i < arg_count; i++) {
         set_var(func->args[i], args[i]);
     }
     
     for (int i = 0; i < func->body_line_count; i++) {
+        if (function_has_returned) break;
+        
         char line_copy[512];
         strncpy(line_copy, func->body_lines[i], sizeof(line_copy) - 1);
         line_copy[sizeof(line_copy) - 1] = '\0';
         parse_line(line_copy);
     }
+    
+    WeltValue* return_val = function_return_value;
+    function_has_returned = 0;
     
     for (int i = saved_symbol_count; i < symbol_count; i++) {
         if (symbol_table[i].val) {
@@ -192,7 +259,7 @@ WeltValue* call_function(const char* name, WeltValue** args, int arg_count) {
     
     symbol_count = saved_symbol_count;
     
-    return NULL;
+    return return_val;
 }
 
 // --- Condition Evaluation ---
@@ -488,6 +555,256 @@ void parse_line(char* line) {
         return;
     }
     
+    if(strncmp(line, "#import FSAL", 12) == 0) {
+        fsal_imported = 1;
+        printf("[FSAL] Module imported\n");
+        return;
+    }
+    
+    if(strncmp(line, "FSAL.port(", 10) == 0) {
+        if(!fsal_imported) {
+            welt_error_syntax("FSAL module not imported. Use #import FSAL first", line, current_line_number);
+            return;
+        }
+        
+        char* start = strchr(line, '"');
+        if(start) {
+            char* end = strrchr(start + 1, '"');
+            if(end) {
+                *end = '\0';
+                const char* filepath = start + 1;
+                
+                if(fsal_current_file) {
+                    fsal_free(fsal_current_file);
+                }
+                
+                fsal_current_file = fsal_load(filepath);
+                if(fsal_current_file) {
+                    printf("[FSAL] Ported file: %s (%d sections)\n", filepath, fsal_current_file->section_count);
+                } else {
+                    printf("[FSAL] Error: Failed to load file '%s'\n", filepath);
+                }
+            }
+        }
+        return;
+    }
+    
+    if(strncmp(line, "FSAL.addSection(", 16) == 0) {
+        if(!fsal_imported) {
+            welt_error_syntax("FSAL module not imported. Use #import FSAL first", line, current_line_number);
+            return;
+        }
+        
+        printf("[FSAL] Note: addSection is not yet implemented for runtime modification\n");
+        return;
+    }
+    
+    if(strncmp(line, "FSAL.addVariable(", 17) == 0) {
+        if(!fsal_imported) {
+            welt_error_syntax("FSAL module not imported. Use #import FSAL first", line, current_line_number);
+            return;
+        }
+        
+        printf("[FSAL] Note: addVariable is not yet implemented for runtime modification\n");
+        return;
+    }
+    
+    if(strncmp(line, "FSAL.importWhole(", 17) == 0) {
+        if(!fsal_imported) {
+            welt_error_syntax("FSAL module not imported. Use #import FSAL first", line, current_line_number);
+            return;
+        }
+        
+        if(!fsal_current_file) {
+            printf("[FSAL] Error: No file ported. Use FSAL.port() first\n");
+            return;
+        }
+        
+        char section_name[128] = {0};
+        char* start = strchr(line, '"');
+        if(start) {
+            char* end = strrchr(start + 1, '"');
+            if(end) {
+                int len = end - (start + 1);
+                strncpy(section_name, start + 1, len);
+                section_name[len] = '\0';
+            }
+        } else {
+            char* paren = strchr(line, '(');
+            if(paren) {
+                char var_name[64];
+                char* close = strchr(paren + 1, ')');
+                if(close) {
+                    int len = close - (paren + 1);
+                    strncpy(var_name, paren + 1, len);
+                    var_name[len] = '\0';
+                    
+                    char* trimmed = var_name;
+                    while(isspace(*trimmed)) trimmed++;
+                    char* end = var_name + strlen(var_name) - 1;
+                    while(end > var_name && isspace(*end)) *end-- = '\0';
+                    
+                    WeltValue* v = get_var(trimmed);
+                    if(v && v->type == WT_STRING) {
+                        strncpy(section_name, v->data.s_val, sizeof(section_name) - 1);
+                    }
+                }
+            }
+        }
+        
+        if(strlen(section_name) > 0) {
+            FSALSection* section = fsal_get_section(fsal_current_file, section_name);
+            if(section) {
+                for(int i = 0; i < section->entry_count; i++) {
+                    FSALEntry* entry = &section->entries[i];
+                    WeltValue* v = wv_create();
+                    
+                    switch(entry->type) {
+                        case FSAL_TYPE_INT:
+                            v->type = WT_INTEGER;
+                            v->data.i_val = entry->value.i_val;
+                            break;
+                        case FSAL_TYPE_FLOAT:
+                            v->type = WT_FLOAT;
+                            v->data.f_val = entry->value.f_val;
+                            break;
+                        case FSAL_TYPE_BOOL:
+                            v->type = WT_BOOL;
+                            v->data.b_val = entry->value.b_val;
+                            break;
+                        case FSAL_TYPE_STRING:
+                            v->type = WT_STRING;
+                            v->data.s_val = strdup(entry->value.s_val);
+                            break;
+                        default:
+                            free(v);
+                            continue;
+                    }
+                    
+                    set_var(entry->key, v);
+                    printf("[FSAL] Imported %s = ", entry->key);
+                    welt_print_value(v);
+                    printf("\n");
+                }
+                printf("[FSAL] Imported %d variables from section '%s'\n", section->entry_count, section_name);
+            } else {
+                printf("[FSAL] Error: Section '%s' not found\n", section_name);
+            }
+        }
+        return;
+    }
+    
+    if(strncmp(line, "FSAL.importBuilding(", 20) == 0) {
+        if(!fsal_imported) {
+            welt_error_syntax("FSAL module not imported. Use #import FSAL first", line, current_line_number);
+            return;
+        }
+        
+        if(!fsal_current_file) {
+            printf("[FSAL] Error: No file ported. Use FSAL.port() first\n");
+            return;
+        }
+        
+        char var_name[128] = {0};
+        char section_name[128] = {0};
+        
+        char* paren = strchr(line, '(');
+        if(paren) {
+            char args[256];
+            char* close = strrchr(paren + 1, ')');
+            if(close) {
+                int len = close - (paren + 1);
+                strncpy(args, paren + 1, len);
+                args[len] = '\0';
+                
+                char* comma = strchr(args, ',');
+                if(comma) {
+                    *comma = '\0';
+                    char* first = args;
+                    char* second = comma + 1;
+                    
+                    while(isspace(*first)) first++;
+                    char* end1 = first + strlen(first) - 1;
+                    while(end1 > first && isspace(*end1)) *end1-- = '\0';
+                    
+                    while(isspace(*second)) second++;
+                    char* end2 = second + strlen(second) - 1;
+                    while(end2 > second && isspace(*end2)) *end2-- = '\0';
+                    
+                    if(first[0] == '"') {
+                        char* quote_end = strchr(first + 1, '"');
+                        if(quote_end) {
+                            int vlen = quote_end - (first + 1);
+                            strncpy(var_name, first + 1, vlen);
+                            var_name[vlen] = '\0';
+                        }
+                    } else {
+                        WeltValue* v = get_var(first);
+                        if(v && v->type == WT_STRING) {
+                            strncpy(var_name, v->data.s_val, sizeof(var_name) - 1);
+                        }
+                    }
+                    
+                    if(second[0] == '"') {
+                        char* quote_end = strchr(second + 1, '"');
+                        if(quote_end) {
+                            int slen = quote_end - (second + 1);
+                            strncpy(section_name, second + 1, slen);
+                            section_name[slen] = '\0';
+                        }
+                    } else {
+                        WeltValue* v = get_var(second);
+                        if(v && v->type == WT_STRING) {
+                            strncpy(section_name, v->data.s_val, sizeof(section_name) - 1);
+                        }
+                    }
+                }
+            }
+        }
+        
+        if(strlen(var_name) > 0 && strlen(section_name) > 0) {
+            FSALSection* section = fsal_get_section(fsal_current_file, section_name);
+            if(section) {
+                FSALEntry* entry = fsal_get_entry(section, var_name);
+                if(entry) {
+                    WeltValue* v = wv_create();
+                    
+                    switch(entry->type) {
+                        case FSAL_TYPE_INT:
+                            v->type = WT_INTEGER;
+                            v->data.i_val = entry->value.i_val;
+                            break;
+                        case FSAL_TYPE_FLOAT:
+                            v->type = WT_FLOAT;
+                            v->data.f_val = entry->value.f_val;
+                            break;
+                        case FSAL_TYPE_BOOL:
+                            v->type = WT_BOOL;
+                            v->data.b_val = entry->value.b_val;
+                            break;
+                        case FSAL_TYPE_STRING:
+                            v->type = WT_STRING;
+                            v->data.s_val = strdup(entry->value.s_val);
+                            break;
+                        default:
+                            free(v);
+                            return;
+                    }
+                    
+                    set_var(entry->key, v);
+                    printf("[FSAL] Imported %s = ", entry->key);
+                    welt_print_value(v);
+                    printf(" from section '%s'\n", section_name);
+                } else {
+                    printf("[FSAL] Error: Variable '%s' not found in section '%s'\n", var_name, section_name);
+                }
+            } else {
+                printf("[FSAL] Error: Section '%s' not found\n", section_name);
+            }
+        }
+        return;
+    }
+    
     // 5. Check for function calls
     char* paren = strchr(line, '(');
     if (paren && !strstr(line, "print(") && !strstr(line, "=")) {
@@ -718,21 +1035,114 @@ void parse_line(char* line) {
             strncpy(args_copy, args_str, sizeof(args_copy) - 1);
             args_copy[sizeof(args_copy) - 1] = '\0';
             
-            char* arg = strtok(args_copy, ",");
-            while (arg && arg_count < 10) {
+            char* arg_ptrs[10];
+            int num_args = split_args_respecting_parens(args_copy, arg_ptrs, 10);
+            
+            for (int arg_idx = 0; arg_idx < num_args && arg_count < 10; arg_idx++) {
+                char* arg = arg_ptrs[arg_idx];
                 while(isspace(*arg)) arg++;
                 char* arg_end = arg + strlen(arg) - 1;
                 while(arg_end > arg && isspace(*arg_end)) *arg_end-- = '\0';
                 
-                WeltValue* v = get_var(arg);
-                if (v) {
-                    args[arg_count++] = v;
+                char* paren = strchr(arg, '(');
+                if (paren) {
+                    char func_name[64];
+                    int name_len = paren - arg;
+                    strncpy(func_name, arg, name_len);
+                    func_name[name_len] = '\0';
+                    
+                    char* trimmed = func_name;
+                    while(isspace(*trimmed)) trimmed++;
+                    char* end = func_name + strlen(func_name) - 1;
+                    while(end > func_name && isspace(*end)) *end-- = '\0';
+                    
+                    WeltFunction* target_func = get_function(trimmed);
+                    if (target_func) {
+                        WeltValue* func_args[10];
+                        WeltValue* temp_literals[10];
+                        int func_arg_count = 0;
+                        int temp_count = 0;
+                        
+                        char* args_start = paren + 1;
+                        char* args_end = strrchr(args_start, ')');
+                        if (args_end) *args_end = '\0';
+                        
+                        char func_args_copy[256];
+                        strncpy(func_args_copy, args_start, sizeof(func_args_copy) - 1);
+                        func_args_copy[sizeof(func_args_copy) - 1] = '\0';
+                        
+                        if (strlen(func_args_copy) > 0) {
+                            char* func_arg = strtok(func_args_copy, ",");
+                            while (func_arg && func_arg_count < 10) {
+                                while(isspace(*func_arg)) func_arg++;
+                                char* func_arg_end = func_arg + strlen(func_arg) - 1;
+                                while(func_arg_end > func_arg && isspace(*func_arg_end)) *func_arg_end-- = '\0';
+                                
+                                WeltValue* fv = NULL;
+                                
+                                if (func_arg[0] == '"') {
+                                    char* closing = strrchr(func_arg + 1, '"');
+                                    if (closing) {
+                                        *closing = '\0';
+                                        fv = wv_create();
+                                        fv->type = WT_STRING;
+                                        fv->data.s_val = strdup(func_arg + 1);
+                                        temp_literals[temp_count++] = fv;
+                                    }
+                                } else if (strcmp(func_arg, "true") == 0 || strcmp(func_arg, "false") == 0) {
+                                    fv = wv_create();
+                                    fv->type = WT_BOOL;
+                                    fv->data.b_val = (strcmp(func_arg, "true") == 0);
+                                    temp_literals[temp_count++] = fv;
+                                } else if (strchr(func_arg, '.')) {
+                                    fv = wv_create();
+                                    fv->type = WT_FLOAT;
+                                    fv->data.f_val = atof(func_arg);
+                                    temp_literals[temp_count++] = fv;
+                                } else if (isdigit(func_arg[0]) || (func_arg[0] == '-' && isdigit(func_arg[1]))) {
+                                    fv = wv_create();
+                                    fv->type = WT_INTEGER;
+                                    fv->data.i_val = atoll(func_arg);
+                                    temp_literals[temp_count++] = fv;
+                                } else {
+                                    fv = get_var(func_arg);
+                                }
+                                
+                                if (fv) {
+                                    func_args[func_arg_count++] = fv;
+                                }
+                                
+                                func_arg = strtok(NULL, ",");
+                            }
+                        }
+                        
+                        WeltValue* result = call_function(trimmed, func_args, func_arg_count);
+                        
+                        for(int k=0; k<temp_count; k++) free(temp_literals[k]);
+                        
+                        if (result) {
+                            args[arg_count++] = result;
+                        } else {
+                            WeltValue* nil = wv_create();
+                            nil->type = WT_INTEGER;
+                            nil->data.i_val = 0;
+                            args[arg_count++] = nil;
+                        }
+                    } else {
+                        char msg[256];
+                        snprintf(msg, sizeof(msg), "undefined function '%s' in print statement", trimmed);
+                        welt_error_undefined_variable(trimmed, current_line_number);
+                    }
                 } else {
-                    char msg[256];
-                    snprintf(msg, sizeof(msg), "undefined variable '%s' in print statement", arg);
-                    welt_error_undefined_variable(arg, current_line_number);
+                    WeltValue* v = get_var(arg);
+                    if (v) {
+                        args[arg_count++] = v;
+                    } else {
+                        char msg[256];
+                        snprintf(msg, sizeof(msg), "undefined variable '%s' in print statement", arg);
+                        welt_error_undefined_variable(arg, current_line_number);
+                    }
                 }
-                arg = strtok(NULL, ",");
             }
             
             welt_print(content, args, arg_count);
@@ -770,8 +1180,123 @@ void parse_line(char* line) {
             if(strstr(val_buf, "<hex>")) {
                 v->data.i_val = parse_hex_literal(val_buf);
                 v->is_hex_repr = 1;
+            } else if(strchr(val_buf, '(')) {
+                char* paren = strchr(val_buf, '(');
+                char func_name[64];
+                int name_len = paren - val_buf;
+                strncpy(func_name, val_buf, name_len);
+                func_name[name_len] = '\0';
+                
+                char* trimmed = func_name;
+                while(isspace(*trimmed)) trimmed++;
+                
+                char* args_start = paren + 1;
+                char* args_end = strrchr(args_start, ')');
+                if(args_end) *args_end = '\0';
+                
+                WeltValue* temp_args[10];
+                WeltValue* temp_literals[10];
+                int arg_count = 0;
+                int temp_count = 0;
+                
+                if(strlen(args_start) > 0) {
+                    char* arg_ptrs[10];
+                    char args_copy[256];
+                    strncpy(args_copy, args_start, sizeof(args_copy) - 1);
+                    args_copy[sizeof(args_copy) - 1] = '\0';
+                    int num_args = split_args_respecting_parens(args_copy, arg_ptrs, 10);
+                    
+                    for(int i = 0; i < num_args && arg_count < 10; i++) {
+                        char* arg = arg_ptrs[i];
+                        while(isspace(*arg)) arg++;
+                        char* arg_end = arg + strlen(arg) - 1;
+                        while(arg_end > arg && isspace(*arg_end)) *arg_end-- = '\0';
+                        
+                        WeltValue* av = NULL;
+                        if(isdigit(arg[0]) || (arg[0] == '-' && isdigit(arg[1]))) {
+                            av = wv_create();
+                            av->type = WT_INTEGER;
+                            av->data.i_val = atoll(arg);
+                            temp_literals[temp_count++] = av;
+                        } else {
+                            av = get_var(arg);
+                        }
+                        if(av) temp_args[arg_count++] = av;
+                    }
+                }
+                
+                WeltValue* result = call_function(trimmed, temp_args, arg_count);
+                for(int k=0; k<temp_count; k++) free(temp_literals[k]);
+                
+                if(result && result->type == WT_INTEGER) {
+                    v->data.i_val = result->data.i_val;
+                } else {
+                    v->data.i_val = 0;
+                }
             } else {
-                v->data.i_val = atoll(val_buf);
+                char* plus = strchr(val_buf, '+');
+                char* minus = strrchr(val_buf, '-');
+                char* mult = strchr(val_buf, '*');
+                
+                if(plus) {
+                    *plus = '\0';
+                    char* left = val_buf;
+                    char* right = plus + 1;
+                    while(isspace(*left)) left++;
+                    while(isspace(*right)) right++;
+                    
+                    char left_trim[128], right_trim[128];
+                    strncpy(left_trim, left, sizeof(left_trim) - 1);
+                    left_trim[sizeof(left_trim) - 1] = '\0';
+                    strncpy(right_trim, right, sizeof(right_trim) - 1);
+                    right_trim[sizeof(right_trim) - 1] = '\0';
+                    
+                    char* end_left = left_trim + strlen(left_trim) - 1;
+                    while(end_left > left_trim && isspace(*end_left)) *end_left-- = '\0';
+                    char* end_right = right_trim + strlen(right_trim) - 1;
+                    while(end_right > right_trim && isspace(*end_right)) *end_right-- = '\0';
+                    
+                    WeltValue* lv = get_var(left_trim);
+                    WeltValue* rv = get_var(right_trim);
+                    
+                    if(lv && rv && lv->type == WT_INTEGER && rv->type == WT_INTEGER) {
+                        v->data.i_val = lv->data.i_val + rv->data.i_val;
+                    } else {
+                        v->data.i_val = atoll(left_trim) + atoll(right_trim);
+                    }
+                } else if(minus && minus != val_buf && !strchr(val_buf, '(')) {
+                    *minus = '\0';
+                    char* left = val_buf;
+                    char* right = minus + 1;
+                    while(isspace(*left)) left++;
+                    while(isspace(*right)) right++;
+                    
+                    WeltValue* lv = get_var(left);
+                    WeltValue* rv = get_var(right);
+                    
+                    if(lv && rv && lv->type == WT_INTEGER && rv->type == WT_INTEGER) {
+                        v->data.i_val = lv->data.i_val - rv->data.i_val;
+                    } else {
+                        v->data.i_val = atoll(left) - atoll(right);
+                    }
+                } else if(mult && !strchr(val_buf, '(')) {
+                    *mult = '\0';
+                    char* left = val_buf;
+                    char* right = mult + 1;
+                    while(isspace(*left)) left++;
+                    while(isspace(*right)) right++;
+                    
+                    WeltValue* lv = get_var(left);
+                    WeltValue* rv = get_var(right);
+                    
+                    if(lv && rv && lv->type == WT_INTEGER && rv->type == WT_INTEGER) {
+                        v->data.i_val = lv->data.i_val * rv->data.i_val;
+                    } else {
+                        v->data.i_val = atoll(left) * atoll(right);
+                    }
+                } else {
+                    v->data.i_val = atoll(val_buf);
+                }
             }
         } 
         else if(strcmp(type_buf, "string") == 0) {
@@ -847,10 +1372,59 @@ void parse_line(char* line) {
     }
     
     // 8. Handle return statement
-    if(strncmp(line, "return ", 7) == 0) {
-        char* ret_val = line + 7;
+    if(strncmp(line, "return", 6) == 0) {
+        char* ret_val = line + 6;
+        while(isspace(*ret_val)) ret_val++;
+        
         char* semi = strchr(ret_val, ';');
         if(semi) *semi = '\0';
+        
+        char* end = ret_val + strlen(ret_val) - 1;
+        while(end > ret_val && isspace(*end)) *end-- = '\0';
+        
+        if (strlen(ret_val) == 0) {
+            function_return_value = NULL;
+            function_has_returned = 1;
+            return;
+        }
+        
+        WeltValue* v = wv_create();
+        
+        if (ret_val[0] == '"') {
+            char* closing = strrchr(ret_val + 1, '"');
+            if (closing) {
+                *closing = '\0';
+                v->type = WT_STRING;
+                v->data.s_val = strdup(ret_val + 1);
+            }
+        } else if (strcmp(ret_val, "true") == 0 || strcmp(ret_val, "false") == 0) {
+            v->type = WT_BOOL;
+            v->data.b_val = (strcmp(ret_val, "true") == 0);
+        } else if (strchr(ret_val, '.')) {
+            v->type = WT_FLOAT;
+            v->data.f_val = atof(ret_val);
+        } else if (isdigit(ret_val[0]) || (ret_val[0] == '-' && isdigit(ret_val[1]))) {
+            v->type = WT_INTEGER;
+            v->data.i_val = atoll(ret_val);
+        } else {
+            WeltValue* var = get_var(ret_val);
+            if (var) {
+                free(v);
+                v = wv_create();
+                v->type = var->type;
+                if (var->type == WT_STRING && var->data.s_val) {
+                    v->data.s_val = strdup(var->data.s_val);
+                } else {
+                    v->data = var->data;
+                }
+            } else {
+                v->type = WT_INTEGER;
+                v->data.i_val = 0;
+            }
+        }
+        
+        function_return_value = v;
+        function_has_returned = 1;
         return;
     }
     
@@ -1170,5 +1744,11 @@ int main(int argc, char** argv) {
     }
     
     welt_fsal_cleanup();
+    
+    if(fsal_current_file) {
+        fsal_free(fsal_current_file);
+        fsal_current_file = NULL;
+    }
+    
     return 0;
 }

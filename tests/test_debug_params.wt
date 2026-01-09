@@ -1,0 +1,11 @@
+fn test_params(a: integer, b: integer) {
+    print("a = {}@", a);
+    print("b = {}@", b);
+    integer sum = a + b;
+    print("sum = {}@", sum);
+    return sum;
+}
+
+fn main() {
+    test_params(10, 20);
+}
