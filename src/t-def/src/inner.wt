@@ -1,0 +1,9 @@
+imp.lib {
+    "types/str.wt",
+    "types/int.wt",
+    "types/m_def.wt"
+}
+
+fn tdef() {
+    
+}
